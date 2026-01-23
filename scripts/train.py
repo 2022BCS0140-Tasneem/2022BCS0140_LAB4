@@ -8,7 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_squared_error
 
 # Load dataset
-df = pd.read_csv("winequality-red.csv")
+# df = pd.read_csv("winequality-red.csv")
+df = pd.read_csv("winequality-red.csv", sep=";")
+
 
 X = df.drop("quality", axis=1)
 y = df["quality"]
