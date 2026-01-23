@@ -45,3 +45,10 @@ metrics = {
 
 with open("metrics.json", "w") as f:
     json.dump(metrics, f, indent=4)
+
+print("======================================")
+print("MODEL PERFORMANCE METRICS")
+print("R2 Score :", r2)
+print("MSE      :", mse)
+print("======================================")
+
