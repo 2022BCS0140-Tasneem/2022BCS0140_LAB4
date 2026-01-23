@@ -46,15 +46,21 @@ jobs:
       - name: Install jq & bc
         run: sudo apt-get update && sudo apt-get install -y jq bc
 
-      - name: Compare metrics
+      - name: Compare metrics (R2 + MSE)
         id: cmp
         run: |
-          CUR=$(jq '.mse' metrics.json)
-          BEST=${{ vars.BEST_MSE }}
-          echo "Current MSE: $CUR"
-          echo "Best MSE: $BEST"
+          CUR_R2=$(jq '.r2' metrics.json)
+          CUR_MSE=$(jq '.mse' metrics.json)
 
-          if (( $(echo "$CUR < $BEST" | bc -l) )); then
+          BEST_R2=${{ vars.BEST_R2 }}
+          BEST_MSE=${{ vars.BEST_MSE }}
+
+          echo "Current R2: $CUR_R2"
+          echo "Best R2: $BEST_R2"
+          echo "Current MSE: $CUR_MSE"
+          echo "Best MSE: $BEST_MSE"
+
+          if (( $(echo "$CUR_R2 > $BEST_R2" | bc -l) )) && (( $(echo "$CUR_MSE < $BEST_MSE" | bc -l) )); then
             echo "improved=true" >> $GITHUB_OUTPUT
           else
             echo "improved=false" >> $GITHUB_OUTPUT
@@ -76,5 +82,3 @@ jobs:
         run: |
           docker build -t syedtasneemkousar/wine-quality:latest .
           docker push syedtasneemkousar/wine-quality:latest
-          # trigger rerun
-

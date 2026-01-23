@@ -6,6 +6,23 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score, mean_squared_error
+import json
+
+r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+
+print("R2 Score:", r2)
+print("MSE:", mse)
+
+metrics = {
+    "r2": float(r2),
+    "mse": float(mse)
+}
+
+with open("metrics.json", "w") as f:
+    json.dump(metrics, f, indent=4)
+
 
 df = pd.read_csv(
     "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv",
