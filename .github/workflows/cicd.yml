@@ -1,0 +1,80 @@
+name: Lab4 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install numpy pandas scikit-learn joblib
+
+      - name: Train model
+        run: python scripts/train.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-artifacts
+          path: |
+            model.pkl
+            metrics.json
+
+  deploy:
+    needs: train
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: model-artifacts
+
+      - name: Install jq & bc
+        run: sudo apt-get update && sudo apt-get install -y jq bc
+
+      - name: Compare metrics
+        id: cmp
+        run: |
+          CUR=$(jq '.mse' metrics.json)
+          BEST=${{ vars.BEST_MSE }}
+          echo "Current MSE: $CUR"
+          echo "Best MSE: $BEST"
+
+          if (( $(echo "$CUR < $BEST" | bc -l) )); then
+            echo "improved=true" >> $GITHUB_OUTPUT
+          else
+            echo "improved=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Stop if not improved
+        if: steps.cmp.outputs.improved == 'false'
+        run: echo "2022BCS0140 ---- Metric did not improve"
+
+      - name: Login Docker Hub
+        if: steps.cmp.outputs.improved == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push Docker Image
+        if: steps.cmp.outputs.improved == 'true'
+        run: |
+          docker build -t syedtasneemkousar/wine-quality:latest .
+          docker push syedtasneemkousar/wine-quality:latest
+          # trigger rerun
+
