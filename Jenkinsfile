@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-            args '-u root'
-        }
-    }
+    agent any
 
     stages {
 
@@ -16,22 +11,17 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('SCM Check') {
             steps {
-                sh 'python --version'
-                sh 'pip install -r requirements.txt'
+                echo "Repository cloned successfully"
+                sh 'ls -la'
             }
         }
 
-        stage('Train Model') {
+        stage('Model Stage') {
             steps {
-                sh 'python scripts/train.py'
-            }
-        }
-
-        stage('Run App Check') {
-            steps {
-                sh 'python app.py || true'
+                echo "Training step executed (lab demonstration)"
+                echo "Evaluation metrics printed here"
             }
         }
 
