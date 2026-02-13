@@ -3,7 +3,7 @@ pipeline {
 
     stages {
 
-        stage('Clone Info') {
+        stage('Start') {
             steps {
                 echo "CI/CD Pipeline Started"
                 echo "Name: Syed Tasneem Kousar"
@@ -13,20 +13,26 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt || true'
+                sh 'python --version'
+                sh 'pip install -r requirements.txt'
             }
         }
 
         stage('Train Model') {
             steps {
-                sh 'python train.py || true'
+                sh 'python scripts/train.py'
             }
         }
 
-        stage('Evaluate Model') {
+        stage('Run App Check') {
             steps {
-                sh 'python evaluate.py || true'
-                echo "Metrics printed above"
+                sh 'python app.py || true'
+            }
+        }
+
+        stage('Complete') {
+            steps {
+                echo "Pipeline Finished Successfully"
             }
         }
     }
