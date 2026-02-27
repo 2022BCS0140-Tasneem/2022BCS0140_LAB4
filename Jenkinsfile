@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10'
-            args '-u root'
-        }
-    }
+    agent any
 
     stages {
 
@@ -16,16 +11,25 @@ pipeline {
             }
         }
 
+        stage('Install Python') {
+            steps {
+                sh '''
+                apt update
+                apt install -y python3 python3-pip
+                '''
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
-                sh 'pip install --upgrade pip'
-                sh 'pip install -r requirements.txt'
+                sh 'pip3 install --upgrade pip'
+                sh 'pip3 install -r requirements.txt'
             }
         }
 
         stage('Run API') {
             steps {
-                sh 'nohup uvicorn app:app --host 0.0.0.0 --port 8000 &'
+                sh 'nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 &'
                 sleep 10
             }
         }
@@ -34,11 +38,11 @@ pipeline {
             steps {
                 script {
                     def response = sh(
-                        script: """
+                        script: '''
                         curl -s -X POST http://localhost:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @test_data.json
-                        """,
+                        ''',
                         returnStdout: true
                     ).trim()
 
@@ -55,11 +59,11 @@ pipeline {
             steps {
                 script {
                     def response = sh(
-                        script: """
+                        script: '''
                         curl -s -X POST http://localhost:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @invalid_data.json
-                        """,
+                        ''',
                         returnStdout: true
                     ).trim()
 
