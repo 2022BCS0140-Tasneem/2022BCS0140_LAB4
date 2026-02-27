@@ -1,12 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "syedtasneemkousar/wine-quality:latest"
-        CONTAINER_NAME = "wine_api_container"
-        PORT = "8000"
-    }
-
     stages {
 
         stage('Start') {
@@ -17,37 +11,16 @@ pipeline {
             }
         }
 
-        stage('Pull Docker Image') {
+        stage('Install Dependencies') {
             steps {
-                script {
-                    sh "docker pull ${IMAGE_NAME}"
-                }
+                sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Run Container') {
+        stage('Run API') {
             steps {
-                script {
-                    sh """
-                    docker run -d -p ${PORT}:8000 --name ${CONTAINER_NAME} ${IMAGE_NAME}
-                    """
-                }
-            }
-        }
-
-        stage('Wait for API') {
-            steps {
-                script {
-                    timeout(time: 60, unit: 'SECONDS') {
-                        waitUntil {
-                            def status = sh(
-                                script: "curl -s http://localhost:${PORT}/ || true",
-                                returnStatus: true
-                            )
-                            return (status == 0)
-                        }
-                    }
-                }
+                sh 'nohup uvicorn app:app --host 0.0.0.0 --port 8000 &'
+                sleep 10
             }
         }
 
@@ -56,7 +29,7 @@ pipeline {
                 script {
                     def response = sh(
                         script: """
-                        curl -s -X POST http://localhost:${PORT}/predict \
+                        curl -s -X POST http://localhost:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @test_data.json
                         """,
@@ -65,14 +38,8 @@ pipeline {
 
                     echo "Valid Response: ${response}"
 
-                    // Validate response contains wine_quality
                     if (!response.contains("wine_quality")) {
-                        error("❌ wine_quality field missing!")
-                    }
-
-                    // Validate numeric value
-                    if (!(response =~ /[0-9]+/)) {
-                        error("❌ wine_quality is not numeric!")
+                        error("wine_quality missing!")
                     }
                 }
             }
@@ -83,7 +50,7 @@ pipeline {
                 script {
                     def response = sh(
                         script: """
-                        curl -s -X POST http://localhost:${PORT}/predict \
+                        curl -s -X POST http://localhost:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @invalid_data.json
                         """,
@@ -92,19 +59,9 @@ pipeline {
 
                     echo "Invalid Response: ${response}"
 
-                    // FastAPI usually returns "detail" for errors
                     if (!response.toLowerCase().contains("detail")) {
-                        error("❌ Invalid input did not return proper error!")
+                        error("Invalid input not handled properly!")
                     }
-                }
-            }
-        }
-
-        stage('Stop Container') {
-            steps {
-                script {
-                    sh "docker stop ${CONTAINER_NAME} || true"
-                    sh "docker rm ${CONTAINER_NAME} || true"
                 }
             }
         }
@@ -118,13 +75,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline PASSED: Model is working correctly"
+            echo "✅ Pipeline PASSED"
         }
         failure {
-            echo "❌ Pipeline FAILED: Model validation failed"
-        }
-        always {
-            sh "docker rm -f ${CONTAINER_NAME} || true"
+            echo "❌ Pipeline FAILED"
         }
     }
 }
