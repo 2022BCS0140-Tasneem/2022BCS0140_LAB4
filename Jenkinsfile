@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.10'
+            args '-u root'
+        }
+    }
 
     stages {
 
@@ -13,14 +18,14 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'python3 -m pip install --upgrade pip'
-                sh 'python3 -m pip install -r requirements.txt'
+                sh 'pip install --upgrade pip'
+                sh 'pip install -r requirements.txt'
             }
         }
 
         stage('Run API') {
             steps {
-                sh 'nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 &'
+                sh 'nohup uvicorn app:app --host 0.0.0.0 --port 8000 &'
                 sleep 10
             }
         }
