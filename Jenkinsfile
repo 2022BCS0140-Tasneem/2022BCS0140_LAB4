@@ -11,35 +11,12 @@ pipeline {
             }
         }
 
-        stage('Install Python') {
-            steps {
-                sh '''
-                apt update
-                apt install -y python3 python3-pip
-                '''
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh 'pip3 install --upgrade pip'
-                sh 'pip3 install -r requirements.txt'
-            }
-        }
-
-        stage('Run API') {
-            steps {
-                sh 'nohup python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 &'
-                sleep 10
-            }
-        }
-
         stage('Valid Inference Test') {
             steps {
                 script {
                     def response = sh(
                         script: '''
-                        curl -s -X POST http://localhost:8000/predict \
+                        curl -s -X POST http://host.docker.internal:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @test_data.json
                         ''',
@@ -60,7 +37,7 @@ pipeline {
                 script {
                     def response = sh(
                         script: '''
-                        curl -s -X POST http://localhost:8000/predict \
+                        curl -s -X POST http://host.docker.internal:8000/predict \
                         -H "Content-Type: application/json" \
                         -d @invalid_data.json
                         ''',
